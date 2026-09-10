@@ -15,28 +15,66 @@ class FASTA {
         // TODO: Add alphabet type to check passed sequences
     }
 
+    fun count(pattern:String) {
+        return this.seq.count(pattern)
+    }
+
+    fun find(pattern:String) {
+        return this.seq.index(pattern)
+    }
+
+    fun find(pattern:String, start:Int, end:Int) {
+        return this.seq.index(pattern, start, end)
+    }
+
+    fun find_all(pattern:String, overlapping:Bool=true) {
+        indicies = []
+        i = this.seq.index(pattern)
+        while (i >= 0) {
+            ~indicies.append(i)
+            i = this.seq.index(pattern, i + (overlapping ? 1 : pattern.length()), this.seq.length())
+        }
+        return indicies
+    }
+
+    fun frequency(pattern:String) {
+        return this.seq.count(pattern) / Float(this.length())
+    }
+
+    fun gc_count() = this.seq.count("G") + this.seq.count("C") + this.seq.count("g") + this.seq.count("c")
+    fun gc_frequency() = (this.seq.count("G") + this.seq.count("C") + this.seq.count("g") + this.seq.count("c")) / Float(this.length())
+
+    fun is_dna() {
+        return all(this.seq, fun(c)=c in ["A", "a", "G", "g", "C", "c", "T", "t"])
+    }
+
+    fun is_rna() {
+        return all(this.seq, fun(c)=c in ["A", "a", "G", "g", "C", "c", "U", "u"])
+    }
+
+    fun length() {
+        return this.seq.length()
+    }
+
+    fun reverse() {
+        return this.seq[-1..-this.seq.length()-1]
+    }
+
+    fun ([])(index:[Int,Range]) {
+        return this.seq[index]
+    }
+
+    fun (in)(value:String) {
+        return value in this.seq
+    }
+
     fun __String() {
         return f""">{this.id} {this.desc != nil ? this.desc : ""}\n{this.seq}"""
     }
     /*
     TODO:
-
-    length()
-    operator[]
-    substring()
-    contains()
-    find()
-    count()
-
     complement()
-    reverse()
     reverse_complement()
-
-    is_dna()
-    is_rna()
-
-    frequency(char)
-    find_all(pattern)
     */
 }
 
