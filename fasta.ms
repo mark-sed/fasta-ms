@@ -7,12 +7,34 @@ will return either Dict or List of FASTA objects from this file/string.
 """
 
 class FASTA {
+    d"""
+    Class that represents single FASTA record.
+    """
 
     fun FASTA(id:String, seq:String, desc:[String,NilType]=nil) {
         this.id = id
         this.seq = seq
         this.desc = desc
         // TODO: Add alphabet type to check passed sequences
+    }
+
+    fun complement() {
+        comp_seq = []
+        for (c: this.seq) {
+            cc = c
+            switch(c) {
+                case "a": cc = "t"
+                case "A": cc = "T"
+                case "t": cc = "a"
+                case "T": cc = "A"
+                case "c": cc = "g"
+                case "C": cc = "G"
+                case "g": cc = "c"
+                case "G": cc = "C"
+            }
+            ~comp_seq.append(cc)
+        }
+        return FASTA(this.id, "".join(comp_seq), this.desc)
     }
 
     fun count(pattern:String) {
@@ -117,23 +139,26 @@ space {
         return [id, l[sp_i+1..l.length()]]
     }
 
-    fun _parse_to_dict(lines:List, file=nil) {
+    fun _parse_to(to_dict:Bool, lines:List, file=nil) {
         // Raise on missing header (>)
         // Raise when duplicate IDs when parsed to dict
         // Accept just header (empty sequence) or empty header
         fun add_record() {
-            if (id in result) {
+            if ($to_dict && id in result) {
                 // FIXME: Once this works remove assert
                 assert(false, "Duplicate IDs when parsing into Dict.")
                 raise FastaParsingError("Duplicate IDs when parsing into Dict.", line_num, file)
             }
-            result[id] = FASTA(id, seq, desc)
+            if ($to_dict) 
+                result[id] = FASTA(id, seq, desc)
+            else
+                ~result.append(FASTA(id, seq, desc))
             // Reset parsed record values
             id = desc = nil
             seq = ""
         }
 
-        result = {:}
+        result = to_dict ? {:} : []
         id = nil
         desc = nil
         seq = ""
@@ -174,7 +199,7 @@ fun dict_reader(s:String) {
     Reads FASTA string `s` and returns it's records as a dictionary.
     """
     nl = _PLATFORM == sys.Platform.Windows ? "\r\n" : "\n"
-    return _parse_to_dict(s.split(nl))
+    return _parse_to(true, s.split(nl))
 }
 
 fun dict_reader(f:File) {
@@ -182,9 +207,21 @@ fun dict_reader(f:File) {
     Reads FASTA file `f` and returns it's records as a dictionary.
     """
     l = f.readlines()
-    return _parse_to_dict(l, f)
+    return _parse_to(true, l, f)
 }
 
-fun list_reader() {
-    // TODO:
+fun list_reader(s:String) {
+    d"""
+    Reads FASTA string `s` and returns it's records as a list.
+    """
+    nl = _PLATFORM == sys.Platform.Windows ? "\r\n" : "\n"
+    return _parse_to(false, s.split(nl))
+}
+
+fun list_reader(f:File) {
+    d"""
+    Reads FASTA file `f` and returns it's records as a list.
+    """
+    l = f.readlines()
+    return _parse_to(false, l, f)
 }
