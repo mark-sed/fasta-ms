@@ -8,7 +8,7 @@ will return either Dict or List of FASTA objects from this file/string.
 
 class FASTA {
     d"""
-    Class that represents single FASTA record.
+    Class that represents a single FASTA record.
     """
 
     fun FASTA(id:String, seq:String, desc:[String,NilType]=nil) {
@@ -19,6 +19,16 @@ class FASTA {
     }
 
     fun complement() {
+        d"""
+        Returns a new FASTA record that will be complemented sequence from this
+        one.
+        This method does not check if the sequence is only DNA.
+        This method is case insensitive and will map:
+            A -> T
+            T -> A
+            C -> G
+            G -> C
+        """
         comp_seq = []
         for (c: this.seq) {
             cc = c
@@ -38,18 +48,31 @@ class FASTA {
     }
 
     fun count(pattern:String) {
+        d"Returns amount of appearances of `pattern` in this sequence."
         return this.seq.count(pattern)
     }
 
     fun find(pattern:String) {
+        d"""
+        Returns index of first appearance of `pattern` in this sequence or -1 if
+        it was not found.
+        """
         return this.seq.index(pattern)
     }
 
     fun find(pattern:String, start:Int, end:Int) {
+        d"""
+        Returns index of first appearance of `pattern` in this sequence from
+        `start` to `end` or -1 if it was not found.
+        """
         return this.seq.index(pattern, start, end)
     }
 
     fun find_all(pattern:String, overlapping:Bool=true) {
+        d"""
+        Returns indices of all appearance of `pattern` in this sequence as a
+        list.
+        """
         indicies = []
         i = this.seq.index(pattern)
         while (i >= 0) {
@@ -60,29 +83,68 @@ class FASTA {
     }
 
     fun frequency(pattern:String) {
+        d"""
+        Returns frequency of appearance of `pattern` in this sequence.
+        Length of this sequence cannot be 0.
+        """
         return this.seq.count(pattern) / Float(this.length())
     }
 
-    fun gc_count() = this.seq.count("G") + this.seq.count("C") + this.seq.count("g") + this.seq.count("c")
-    fun gc_frequency() = (this.seq.count("G") + this.seq.count("C") + this.seq.count("g") + this.seq.count("c")) / Float(this.length())
+    fun gc_count() {
+        d"""
+        Returns how many Gs and Cs are in this sequence.
+        This method is case insensitive. 
+        """
+        return this.seq.count("G") + this.seq.count("C") + this.seq.count("g") + this.seq.count("c")
+    }
+
+    fun gc_frequency() {
+        d"""
+        Returns frequency of appearance of Gs and Cs in this sequence.
+        This method is case insensitive. 
+        """
+        return (this.seq.count("G") + this.seq.count("C") + this.seq.count("g") + this.seq.count("c")) / Float(this.length())
+    }
 
     fun is_dna() {
+        d"""
+        Returns true if all the characters in sequence are either A, T, C or G.
+        This method is case insensitive.
+        """
         return all(this.seq, fun(c)=c in ["A", "a", "G", "g", "C", "c", "T", "t"])
     }
 
     fun is_rna() {
+        d"""
+        Returns true if all the characters in sequence are either A, T, C or U.
+        This method is case insensitive.
+        """
         return all(this.seq, fun(c)=c in ["A", "a", "G", "g", "C", "c", "U", "u"])
     }
 
     fun length() {
+        d"Returns character length of this sequence."
         return this.seq.length()
     }
 
     fun reverse() {
-        return this.seq[-1..-this.seq.length()-1]
+        d"""
+        Returns a new FASTA record with this sequence reversed.
+        """
+        return FASTA(this.id, this.seq[-1..-this.seq.length()-1], this.desc)
     }
 
     fun reverse_complement() {
+        d"""
+        Returns a new FASTA record that will be a reversed and complemented
+        sequence from this one.
+        This method does not check if the sequence is only DNA.
+        This method is case insensitive and will map:
+            A -> T
+            T -> A
+            C -> G
+            G -> C
+        """
         comp_seq = []
         for (i: this.seq.length()-1..-1) {
             c = this.seq[i]
@@ -100,6 +162,22 @@ class FASTA {
             ~comp_seq.append(cc)
         }
         return FASTA(this.id, "".join(comp_seq), this.desc)
+    }
+
+    fun subsequence(r:Range) {
+        d"""
+        Returns a new FASTA record with the same id and description, just the
+        sequence will be a subsequence from the current one.
+        """
+        return FASTA(this.id, this.seq[r], this.desc)
+    }
+
+    fun subsequence(start:Int, end:Int) {
+        d"""
+        Returns a new FASTA record with the same id and description, just the
+        sequence will be a subsequence from the current one.
+        """
+        return FASTA(this.id, this.seq[start..end], this.desc)
     }
 
     fun ([])(index:[Int,Range]) {
@@ -239,4 +317,44 @@ fun list_reader(f:File) {
     """
     l = f.readlines()
     return _parse_to(false, l, f)
+}
+
+fun write_fasta(records, f:File) {
+    d"""
+    Writes multiple FASTA records into file `f`. There will be empty line
+    between records.
+    Argument `records` has to be iterable.
+    File `f` has to be open for writing and won't be closed by this method.
+    """
+    first = true
+    for (r: records) {
+        if (not first)
+            ~f.write("\n")
+        first = false
+        ~::write_fasta(r, f)
+    }
+}
+
+fun write_fasta(records, path:String) {
+    d"""
+    Creates a new file on `path` and writes FASTA records into it.
+    There will be empty line between records.
+    Argument `records` has to be iterable.
+    """
+    ~with_open(path, fun(f) = ::write_fasta(records, f), "w")
+}
+
+fun write_fasta(record:FASTA, f:File) {
+    d"""
+    Writes a FASTA record into file `f`.
+    File `f` has to be open for writing and won't be closed by this method.
+    """
+    ~f.write(String(record)++"\n")
+}
+
+fun write_fasta(record:FASTA, path:String) {
+    d"""
+    Creates a new file on `path` and writes a FASTA record into it.
+    """
+    ~with_open(path, fun(f) = ::write_fasta(record, f), "w")
 }
