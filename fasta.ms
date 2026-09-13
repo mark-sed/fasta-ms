@@ -82,6 +82,26 @@ class FASTA {
         return this.seq[-1..-this.seq.length()-1]
     }
 
+    fun reverse_complement() {
+        comp_seq = []
+        for (i: this.seq.length()-1..-1) {
+            c = this.seq[i]
+            cc = c
+            switch(c) {
+                case "a": cc = "t"
+                case "A": cc = "T"
+                case "t": cc = "a"
+                case "T": cc = "A"
+                case "c": cc = "g"
+                case "C": cc = "G"
+                case "g": cc = "c"
+                case "G": cc = "C"
+            }
+            ~comp_seq.append(cc)
+        }
+        return FASTA(this.id, "".join(comp_seq), this.desc)
+    }
+
     fun ([])(index:[Int,Range]) {
         return this.seq[index]
     }
@@ -93,11 +113,6 @@ class FASTA {
     fun __String() {
         return f""">{this.id} {this.desc != nil ? this.desc : ""}\n{this.seq}"""
     }
-    /*
-    TODO:
-    complement()
-    reverse_complement()
-    */
 }
 
 class FastaParsingError : Exception {
